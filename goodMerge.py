@@ -1,5 +1,7 @@
 import os.path
 import json
+import xml.dom.minidom
+from functools import reduce
 import logging
 
 log = logging.getLogger(__name__)
@@ -23,7 +25,7 @@ def get_args():
     )
 
     parser.add_argument('--config', action='store', help='', default=DEFAULT_CONFIG_FILENAME)
-    parser.add_argument('--postmortem', action='store', help='Enter debugger on exception')
+    parser.add_argument('--postmortem', action='store_true', help='Enter debugger on exception')
     parser.add_argument('--log_level', type=int, help='log level')
     parser.add_argument('--version', action='version', version=VERSION)
 
@@ -44,7 +46,23 @@ def get_args():
 # Main -------------------------------------------------------------------------
 
 def main(**kwargs):
-    pass
+    with open('./var/xmdb/GoodGBA.xmdb', 'rt') as filehandle:
+        data = xml.dom.minidom.parse(filehandle)
+
+    # Parse 'Zones' - These associate esoteric names with the primary set
+    def parse_zone(acc, zone):
+        if zone.childNodes[0].nodeType != zone.ELEMENT_NODE:
+            log.debug(f'wtf is this {zone}')
+            return acc
+        acc[zone.childNodes[0].getAttribute('name')] = tuple(
+            zone_child.getAttribute('name')
+            for zone_child in zone.childNodes[1:]
+            if zone_child.nodeType == zone_child.ELEMENT_NODE
+        )
+        return acc
+    zones = reduce(parse_zone , data.getElementsByTagName('zoned'), {})
+
+    assert False
 
 
 def postmortem(func, *args, **kwargs):
