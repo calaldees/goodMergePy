@@ -99,3 +99,13 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# vscode
+.vscode
+
+# OSX Cancer
+**/.DS_Store
+
+
+# goodMergePy
+config.json
