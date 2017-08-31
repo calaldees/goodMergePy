@@ -78,7 +78,10 @@ def main(**kwargs):
     log.info(f'{len(filelist)} in filelist')
 
     def group_filelist(acc, filename):
-        normalized_filename = re.match(r'[^(.[]*', filename).group(0).strip()
+        if not filename:
+            return acc
+        normalized_filename = re.match(r'[^([]+', filename).group(0).strip()
+        normalized_filename = re.sub(r'.zip$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
         acc[normalized_filename].add(filename)
         return acc
     grouped_filelist = reduce(group_filelist, filelist, defaultdict(set))
@@ -89,17 +92,40 @@ def main(**kwargs):
             log.warn(f'wtf is this {zone}')
             return acc
         parent_name = zone.childNodes[0].getAttribute('name')
+        if parent_name not in acc:
+            log.info(f'missing ** {parent_name}')
+            return acc
         #log.debug(f'parent: {parent_name}')
         #acc[parent_name] = tuple(
         #    zone_child.getAttribute('name')
         #    for zone_child in zone.childNodes[1:]
         #    if zone_child.nodeType == zone_child.ELEMENT_NODE
         #)
-        for zone_child in for zone_child in zone.childNodes[1:]:
-            if zone_child.nodeType == zone_child.ELEMENT_NODE:
-                child_name = zone_child.getAttribute('name')
-                #acc[parent_name] += acc[child_name]
-                #del acc[child_name]
+
+        # Identify groups
+        def group_nodes(acc, node)
+            if node.nodeType != zone_child.ELEMENT_NODE:
+                return acc
+            if node.tagName in ('bias', 'clone'):
+                child_name = node.getAttribute('name')
+                #if not child_name:
+                #    return acc
+                acc.add(child_name)
+            if node.tagName in ('group'):
+                group_regex = re.compile(node.getAttribute('reg'))
+                acc |= {name for name in acc.keys() if group_regex.match(name)}
+            return acc
+        to_merge = reduce(group_nodes, zone.childNodes[1:], set())
+
+        # Merge nodes into parent and remove
+        for name in to_merge:
+            if name not in acc:
+                log.warn(f'not child ** {name}')
+                continue
+            #log.debug(f'{parent_name} ^ {child_name}')
+            acc[parent_name] |= acc[name]
+            del acc[name]
+
         return acc
     zones = reduce(parse_zone, data.getElementsByTagName('zoned'), grouped_filelist)
 
