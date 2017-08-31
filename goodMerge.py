@@ -82,6 +82,7 @@ def main(**kwargs):
             return acc
         normalized_filename = re.match(r'[^([]+', filename).group(0).strip()
         normalized_filename = re.sub(r'.zip$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
+        normalized_filename = normalized_filename.lower()
         acc[normalized_filename].add(filename)
         return acc
     grouped_filelist = reduce(group_filelist, filelist, defaultdict(set))
@@ -91,7 +92,10 @@ def main(**kwargs):
         if zone.childNodes[0].nodeType != zone.ELEMENT_NODE:
             log.warn(f'wtf is this {zone}')
             return acc
-        parent_name = zone.childNodes[0].getAttribute('name')
+        deferred = bool(zone.getAttribute('deferred'))
+        parent_name = zone.childNodes[0].getAttribute('name').lower()
+        if deferred:
+            pass
         if parent_name not in acc:
             log.info(f'missing ** {parent_name}')
             return acc
@@ -103,18 +107,15 @@ def main(**kwargs):
         #)
 
         # Identify groups
-        def group_nodes(acc, node)
-            if node.nodeType != zone_child.ELEMENT_NODE:
-                return acc
-            if node.tagName in ('bias', 'clone'):
-                child_name = node.getAttribute('name')
-                #if not child_name:
-                #    return acc
-                acc.add(child_name)
+        def group_nodes(to_merge, node):
+            if node.nodeType != node.ELEMENT_NODE:
+                return to_merge
+            if node.tagName in ('bias', 'clone') and node.getAttribute('name'):
+                to_merge.add(node.getAttribute('name').lower())
             if node.tagName in ('group'):
-                group_regex = re.compile(node.getAttribute('reg'))
-                acc |= {name for name in acc.keys() if group_regex.match(name)}
-            return acc
+                group_regex = re.compile(node.getAttribute('reg'), flags=re.IGNORECASE)
+                to_merge |= {name.lower() for name in acc.keys() if group_regex.match(name)}
+            return to_merge
         to_merge = reduce(group_nodes, zone.childNodes[1:], set())
 
         # Merge nodes into parent and remove
