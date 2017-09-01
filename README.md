@@ -5,7 +5,8 @@ goodMergePy
 
 `goodMergePy` is a cross platform [Python](https://www.python.org/) re-implementation of a subset of `GoodMerge`'s behavior.
 
-How `GoodMerge` works
+
+What `GoodMerge` does
 ---------------------
 
 GoodMerge does two core roles.
@@ -32,7 +33,7 @@ GoodMerge does two core roles.
             Unrelated Name
     ```
 
-2. Additional grouping information is controled by an `xmdb` (xml) file. Downloadable form the [GoodMerge](http://goodmerge.sourceforge.net/Download.php) site.
+2. Groups roms from additional `xmdb` (xml) file. Downloadable form the [GoodMerge](http://goodmerge.sourceforge.net/Download.php) site.
 
     ```
         # Input
@@ -43,7 +44,11 @@ GoodMerge does two core roles.
     ```
 
     ```xml
-        <zoned><bias zone="En" name="Rom Name 2 - More Example"/><bias zone="J" name="Rom Name J - Japanese name"/><group reg="^Rom Name 2"/></zoned>
+        <zoned>
+            <bias zone="En" name="Rom Name 2 - More Example"/>
+            <bias zone="J" name="Rom Name J - Japanese name"/>
+            <group reg="^Rom Name 2"/>
+        </zoned>
     ```
 
     ```
