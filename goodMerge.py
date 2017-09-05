@@ -21,6 +21,13 @@ TEMPLATE_FILENAME_XMDB = 'Good{}.xmdb'
 
 # Utils ------------------------------------------------------------------------
 
+class SetEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, set):
+            return sorted(list(obj))
+        return json.JSONEncoder.default(self, obj)
+
+
 def _load_xml(source):
     if os.path.isfile(source):
         with open(source, 'rt') as filehandle:
@@ -33,15 +40,15 @@ def parse_xmdb_dom(dom):
     """
     Mocking XML objects for tests is tricky.
     Parse an XML structure into our own intermediary data structure
+
+    TODO: Doctest
     """
     def _parse_zone(acc, zone):
-        if zone.childNodes[0].nodeType != zone.ELEMENT_NODE:
-            log.warn(f'wtf is this {zone}')
-            return acc
-        parent_name = zone.childNodes[0].getAttribute('name')
         #deferred = bool(zone.getAttribute('deferred'))
-        #if deferred:
-        #    pass
+        childNodeElements = tuple(filter(lambda node: node.nodeType == node.ELEMENT_NODE, zone.childNodes))
+        if not childNodeElements:
+            return acc
+        parent_name = childNodeElements[0].getAttribute('name')
         def _group_nodes(acc, node):
             if node.nodeType == node.ELEMENT_NODE:
                 if node.tagName in ('bias', 'clone') and node.getAttribute('name'):
@@ -49,7 +56,7 @@ def parse_xmdb_dom(dom):
                 if node.tagName in ('group'):
                     acc['regex'].add(node.getAttribute('reg'))
             return acc
-        acc[parent_name] = reduce(_group_nodes, zone.childNodes[1:], {'regex': Set(), 'clones': Set()})
+        acc[parent_name] = reduce(_group_nodes, childNodeElements[1:], {'regex': set(), 'clones': set()})
         return acc
 
     return {
@@ -57,6 +64,91 @@ def parse_xmdb_dom(dom):
     }
 
 
+def get_filelist(path_roms=None, path_filelist=None):
+    assert bool(path_roms) ^ bool(path_filelist), 'path_roms or path_filelist'
+    # Read filelist
+    if path_filelist and os.path.isfile(path_filelist):
+        with open(path_filelist, 'rt') as filehandle:
+            return filehandle.read().split('\n')
+    path_roms = path_roms or './'
+    assert os.path.isdir(path_roms)
+    return os.listdir(path_roms)
+
+
+def group_filelist(filelist, merge_data={}):
+    """
+    >>> import json
+    >>> json.dumps(group_filelist(
+    ...     filelist=(
+    ...         'Rom Name 1 - Example [E].zip',
+    ...         'Rom Name 1 - Example [U] [!].zip',
+    ...         'Rom Name 1 - Example [U] [T-Hack].zip',
+    ...         'Unrelated Name.zip',
+    ...     ),
+    ... ), cls=SetEncoder)
+    '{"Rom Name 1 - Example": ["Rom Name 1 - Example [E].zip", "Rom Name 1 - Example [U] [!].zip", "Rom Name 1 - Example [U] [T-Hack].zip"], "Unrelated Name": ["Unrelated Name.zip"]}'
+
+    >>> json.dumps(group_filelist(
+    ...     filelist=(
+    ...         'Rom Name 2 - More Example Better [E].zip',
+    ...         'Rom Name 2 - More Example [U] [!].zip',
+    ...         'Rom Name J - Japanese name [J].zip',
+    ...         'Unrelated Name.zip',
+    ...     ),
+    ...     merge_data=parse_xmdb_dom(_load_xml('''<?xml version="1.0"?><!DOCTYPE romsets SYSTEM "GoodMerge.dtd">
+    ...         <zoned>
+    ...             <bias zone="En" name="Rom Name 2 - More Example"/>
+    ...             <bias zone="J" name="Rom Name J - Japanese name"/>
+    ...             <group reg="^Rom Name 2"/>
+    ...         </zoned>
+    ...     '''))
+    ... ), cls=SetEncoder)
+    '{"Rom Name 2 - More Example": ["Rom Name 2 - More Example Better [E].zip", "Rom Name 2 - More Example [U] [!].zip", "Rom Name J - Japanese name [J].zip"], "Unrelated Name": ["Unrelated Name.zip"]}'
+
+    """
+    log.info('merge')
+    log.info(f'{len(filelist)} in filelist')
+
+    def _normalize_filename(filename):
+        normalized_filename = re.match(r'[^([]+', filename).group(0).strip()
+        normalized_filename = re.sub(r'.zip$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
+        normalized_filename = normalized_filename.lower().title()
+        return normalized_filename
+
+    def group_filelist(acc, filename):
+        if not filename:
+            return acc
+        acc[_normalize_filename(filename)].add(filename)
+        return acc
+    grouped_filelist = reduce(group_filelist, filelist, defaultdict(set))
+
+    # Parse 'Zones' - These associate esoteric names with the primary set
+    def parse_zone(acc, zone_data):
+        parent_name, data = zone_data
+        parent_name = _normalize_filename(parent_name)
+
+        # Identify groups
+        to_merge = set()
+        to_merge |= data['clones']
+        to_merge |= {
+            name
+            for name in acc.keys()
+            for regex in data['regex']
+            if re.match(regex, name, flags=re.IGNORECASE)
+        }
+        to_merge = {_normalize_filename(name) for name in to_merge}
+        to_merge -= {parent_name, }
+
+        # Merge nodes into parent and remove
+        for name in to_merge:
+            if name not in acc:
+                continue
+            acc[parent_name] |= acc[name]
+            del acc[name]
+
+        return acc
+
+    return reduce(parse_zone, merge_data.get('zoned', {}).items(), grouped_filelist)
 
 
 # Command Line Arguments -------------------------------------------------------
@@ -103,58 +195,12 @@ def get_args():
 # Main -------------------------------------------------------------------------
 
 def main(**kwargs):
-    data = parse_xmdb_dom(_load_xml(
-        os.path.join(kwargs['path_xmdb'], TEMPLATE_FILENAME_XMDB.format(kwargs['type']))
-    ))
-
-    # Read filelist
-    if kwargs.get('path_filelist'):
-        with open(kwargs['path_filelist'], 'rt') as filehandle:
-            filelist = filehandle.read().split('\n')
-    else:
-        filelist = os.listdir(kwargs.get('path_roms') or './')
-    log.info(f'{len(filelist)} in filelist')
-
-    def _normalize_filename(filename):
-        normalized_filename = re.match(r'[^([]+', filename).group(0).strip()
-        normalized_filename = re.sub(r'.zip$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
-        normalized_filename = normalized_filename.lower()
-        return normalized_filename
-
-    def group_filelist(acc, filename):
-        if not filename:
-            return acc
-        acc[_normalize_filename(filename)].add(filename)
-        return acc
-    grouped_filelist = reduce(group_filelist, filelist, defaultdict(set))
-
-    # Parse 'Zones' - These associate esoteric names with the primary set
-    def parse_zone(acc, zone_data):
-        parent_name, data = zone_data
-        parent_name = _normalize_filename(parent_name)
-
-        # Identify groups
-        to_merge = set()
-        to_merge |= data['clones']
-        to_merge |= {
-            name
-            for name in acc.keys()
-            for regex in data['regex']
-            if re.match(regex, name, flags=re.IGNORECASE)
-        }
-        to_merge = {_normalize_filename(name) for name in to_merge}
-        to_merge -= {parent_name, }
-
-        # Merge nodes into parent and remove
-        for name in to_merge:
-            if name not in acc:
-                continue
-            acc[parent_name] |= acc[name]
-            del acc[name]
-
-        return acc
-    zones = reduce(parse_zone, data['zoned'].items(), grouped_filelist)
-
+    data = group_filelist(
+        filelist=get_filelist(path_roms=kwargs.get('path_roms'), path_filelist=kwargs.get('path_filelist')),
+        merge_data=parse_xmdb_dom(_load_xml(
+            os.path.join(kwargs['path_xmdb'], TEMPLATE_FILENAME_XMDB.format(kwargs['type']))
+        )),
+    )
     assert False
 
 
