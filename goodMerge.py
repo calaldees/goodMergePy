@@ -4,6 +4,10 @@ import json
 import xml.dom.minidom
 from functools import reduce
 from collections import defaultdict
+from tempfile import TemporaryDirectory
+import shutil
+from functools import partial
+import subprocess
 import logging
 
 log = logging.getLogger(__name__)
@@ -151,6 +155,54 @@ def group_filelist(filelist, merge_data={}):
     return reduce(parse_zone, merge_data.get('zoned', {}).items(), grouped_filelist)
 
 
+class CompressionHelperTempfolder():
+    def __init__(self, source_folder=None, destination_folder=None, working_folder=None, cmd_compress='', cmd_decompress='', cmd=subprocess.call, remove=os.remove, move=shutil.move, **kwargs):
+        assert os.path.isdir(source_folder)
+        self.source_folder = os.path.abspath(source_folder)
+
+        self.cmd_decompress = tuple(cmd_decompress.split(' '))
+        self.cmd_compress = tuple(cmd_compress.split(' '))
+        self.cmd = cmd
+        self.move = move
+        self.remove = remove
+
+        self.destination_folder = os.path.abspath(destination_folder or source_folder)
+        self.working_folder = os.path.abspath(working_folder) if working_folder else None
+        self.temp_folder = None
+
+    def __enter__(self):
+        if not self.working_folder:
+            self.temp_folder = TemporaryDirectory()
+            self.working_folder = self.temp_folder.name
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.temp_folder:
+            self.temp_folder.cleanup()
+            self.working_folder = None
+
+    def prepare(self, source_filename):
+        source_filename = os.path.join(self.source_folder, source_filename)
+        if source_filename.endswith('.zip'):
+            self.cmd(self.cmd_decompress, source_filename, self.working_folder)
+            self.remove(source_filename)
+        else:
+            self.move(source_filename, self.working_folder)
+
+    def compress(self, destination_filename):
+        destination_filename = os.path.abspath(os.path.join(self.destination_folder, destination_filename))
+        working_filenames = tuple(map(partial(os.path.join, self.working_folder), os.listdir(self.working_folder)))
+        self.cmd(self.cmd_compress + (destination_filename, ) + working_filenames)
+        for filename in working_filenames:
+            self.remove(filename)
+
+
+def merge(grouped_filelist, compressor):
+    for destination_filename, source_filenames in grouped_filelist.items():
+        for source_filename in source_filenames:
+            compressor.prepare(source_filename)
+        compressor.compress(destination_filename)
+
+
 # Command Line Arguments -------------------------------------------------------
 
 def get_args():
@@ -195,13 +247,14 @@ def get_args():
 # Main -------------------------------------------------------------------------
 
 def main(**kwargs):
-    data = group_filelist(
-        filelist=get_filelist(path_roms=kwargs.get('path_roms'), path_filelist=kwargs.get('path_filelist')),
+    grouped_filelist = group_filelist(
+        filelist=get_filelist(path_roms=kwargs.get('source_folder'), path_filelist=kwargs.get('path_filelist')),
         merge_data=parse_xmdb_dom(_load_xml(
             os.path.join(kwargs['path_xmdb'], TEMPLATE_FILENAME_XMDB.format(kwargs['type']))
         )),
     )
-    assert False
+    with CompressionHelperTempfolder(**kwargs) as compressor:
+        merge(grouped_filelist, compressor):
 
 
 def postmortem(func, *args, **kwargs):
