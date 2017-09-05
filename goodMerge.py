@@ -19,6 +19,46 @@ DEFAULT_CONFIG_FILENAME = 'config.json'
 TEMPLATE_FILENAME_XMDB = 'Good{}.xmdb'
 
 
+# Utils ------------------------------------------------------------------------
+
+def _load_xml(source):
+    if os.path.isfile(source):
+        with open(source, 'rt') as filehandle:
+            return xml.dom.minidom.parse(filehandle)
+    else:
+        return xml.dom.minidom.parseString(source)
+
+
+def parse_xmdb_dom(dom):
+    """
+    Mocking XML objects for tests is tricky.
+    Parse an XML structure into our own intermediary data structure
+    """
+    def _parse_zone(acc, zone):
+        if zone.childNodes[0].nodeType != zone.ELEMENT_NODE:
+            log.warn(f'wtf is this {zone}')
+            return acc
+        parent_name = zone.childNodes[0].getAttribute('name')
+        #deferred = bool(zone.getAttribute('deferred'))
+        #if deferred:
+        #    pass
+        def _group_nodes(acc, node):
+            if node.nodeType == node.ELEMENT_NODE:
+                if node.tagName in ('bias', 'clone') and node.getAttribute('name'):
+                    acc['clones'].add(node.getAttribute('name'))
+                if node.tagName in ('group'):
+                    acc['regex'].add(node.getAttribute('reg'))
+            return acc
+        acc[parent_name] = reduce(_group_nodes, zone.childNodes[1:], {'regex': Set(), 'clones': Set()})
+        return acc
+
+    return {
+        'zoned': reduce(_parse_zone, dom.getElementsByTagName('zoned'), {})
+    }
+
+
+
+
 # Command Line Arguments -------------------------------------------------------
 
 def get_args():
@@ -63,11 +103,9 @@ def get_args():
 # Main -------------------------------------------------------------------------
 
 def main(**kwargs):
-    # Read XMDB data
-    filename = os.path.join(kwargs['path_xmdb'], TEMPLATE_FILENAME_XMDB.format(kwargs['type']))
-    assert os.path.isfile(filename), f'{filename} does not exist'
-    with open(filename, 'rt') as filehandle:
-        data = xml.dom.minidom.parse(filehandle)
+    data = parse_xmdb_dom(_load_xml(
+        os.path.join(kwargs['path_xmdb'], TEMPLATE_FILENAME_XMDB.format(kwargs['type']))
+    ))
 
     # Read filelist
     if kwargs.get('path_filelist'):
@@ -91,28 +129,19 @@ def main(**kwargs):
     grouped_filelist = reduce(group_filelist, filelist, defaultdict(set))
 
     # Parse 'Zones' - These associate esoteric names with the primary set
-    def parse_zone(acc, zone):
-        if zone.childNodes[0].nodeType != zone.ELEMENT_NODE:
-            log.warn(f'wtf is this {zone}')
-            return acc
-        parent_name = _normalize_filename(zone.childNodes[0].getAttribute('name'))
-        deferred = bool(zone.getAttribute('deferred'))
-        if deferred:
-            pass
+    def parse_zone(acc, zone_data):
+        parent_name, data = zone_data
+        parent_name = _normalize_filename(parent_name)
 
         # Identify groups
-        #to_merge = {name for name in acc.keys() if re.match(parent_name, name)}  # automatically group by parent_name
         to_merge = set()
-        def group_nodes(to_merge, node):
-            if node.nodeType != node.ELEMENT_NODE:
-                return to_merge
-            if node.tagName in ('bias', 'clone') and node.getAttribute('name'):
-                to_merge.add(node.getAttribute('name'))
-            if node.tagName in ('group'):
-                group_regex = re.compile(node.getAttribute('reg'), flags=re.IGNORECASE)
-                to_merge |= {name for name in acc.keys() if group_regex.match(name)}
-            return to_merge
-        to_merge = reduce(group_nodes, zone.childNodes[1:], to_merge)
+        to_merge |= data['clones']
+        to_merge |= {
+            name
+            for name in acc.keys()
+            for regex in data['regex']
+            if re.match(regex, name, flags=re.IGNORECASE)
+        }
         to_merge = {_normalize_filename(name) for name in to_merge}
         to_merge -= {parent_name, }
 
@@ -124,7 +153,7 @@ def main(**kwargs):
             del acc[name]
 
         return acc
-    zones = reduce(parse_zone, data.getElementsByTagName('zoned'), grouped_filelist)
+    zones = reduce(parse_zone, data['zoned'].items(), grouped_filelist)
 
     assert False
 
