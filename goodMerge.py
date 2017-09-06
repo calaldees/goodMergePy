@@ -156,7 +156,9 @@ def group_filelist(filelist, merge_data={}):
 
 
 class CompressionHelperTempfolder():
-    def __init__(self, source_folder=None, destination_folder=None, working_folder=None, cmd_compress='', cmd_decompress='', cmd=subprocess.call, remove=os.remove, move=shutil.move, **kwargs):
+    """
+    """
+    def __init__(self, source_folder=None, destination_folder=None, working_folder=None, cmd_compress='', cmd_decompress='', cmd=subprocess.call, remove=os.remove, move=shutil.move, listdir=os.listdir, **kwargs):
         assert os.path.isdir(source_folder)
         self.source_folder = os.path.abspath(source_folder)
 
@@ -165,6 +167,7 @@ class CompressionHelperTempfolder():
         self.cmd = cmd
         self.move = move
         self.remove = remove
+        self.listdir = listdir
 
         self.destination_folder = os.path.abspath(destination_folder or source_folder)
         self.working_folder = os.path.abspath(working_folder) if working_folder else None
@@ -190,7 +193,7 @@ class CompressionHelperTempfolder():
 
     def compress(self, destination_filename):
         destination_filename = os.path.abspath(os.path.join(self.destination_folder, destination_filename))
-        working_filenames = tuple(map(partial(os.path.join, self.working_folder), os.listdir(self.working_folder)))
+        working_filenames = tuple(map(partial(os.path.join, self.working_folder), self.listdir(self.working_folder)))
         self.cmd(self.cmd_compress + (destination_filename, ) + working_filenames)
         for filename in working_filenames:
             self.remove(filename)
