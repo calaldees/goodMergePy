@@ -175,18 +175,20 @@ class CompressionHelperTempfolder():
 
     def __enter__(self):
         if not self.working_folder:
-            self.temp_folder = TemporaryDirectory()
-            self.working_folder = self.temp_folder.name
+            self.temp_folder_object = TemporaryDirectory()
+            self.temp_folder = self.temp_folder_object.name
+            self.working_folder = self.temp_folder
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.temp_folder:
-            self.temp_folder.cleanup()
+            self.temp_folder_object.cleanup()
             self.working_folder = None
 
     def prepare(self, source_filename):
         source_filename = os.path.join(self.source_folder, source_filename)
         if source_filename.endswith('.zip'):
-            self.cmd(self.cmd_decompress, source_filename, self.working_folder)
+            self.cmd(self.cmd_decompress + (source_filename, ) + (self.working_folder, ))
             self.remove(source_filename)
         else:
             self.move(source_filename, self.working_folder)
@@ -257,7 +259,7 @@ def main(**kwargs):
         )),
     )
     with CompressionHelperTempfolder(**kwargs) as compressor:
-        merge(grouped_filelist, compressor):
+        merge(grouped_filelist, compressor)
 
 
 def postmortem(func, *args, **kwargs):

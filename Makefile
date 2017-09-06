@@ -8,5 +8,5 @@ var/xmdb:
 	unzip
 
 test:
-	#
+	pytest --pdb --doctest-modules
 
