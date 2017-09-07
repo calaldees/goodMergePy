@@ -36,7 +36,7 @@ def test_compress(source_folder):
         }
     }
 
-    with CompressionHelperTempfolder(source_folder, cmd_compress='7z a') as compressor:
+    with CompressionHelperTempfolder(source_folder) as compressor:
         merge(grouped_filelist, compressor)
 
     expected_filenames = {f'{key}.7z' for key in grouped_filelist.keys()}

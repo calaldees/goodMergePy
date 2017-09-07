@@ -22,6 +22,7 @@ DEFAULT_CONFIG_FILENAME = 'config.json'
 #REGEX_XMDB_TYPE = re.compile(r'Good(.*)\.xmdb', flags=re.IGNORECASE)
 TEMPLATE_FILENAME_XMDB = 'Good{}.xmdb'
 
+REGEX_IS_COMPRESSED_FILE_EXTENSION = re.compile(r'(\.zip|\.7z|\.gzip\.tar)$')
 
 # Utils ------------------------------------------------------------------------
 
@@ -158,47 +159,52 @@ def group_filelist(filelist, merge_data={}):
 class CompressionHelperTempfolder():
     """
     """
-    def __init__(self, source_folder=None, destination_folder=None, working_folder=None, cmd_compress='', cmd_decompress='', cmd=subprocess.call, remove=os.remove, move=shutil.move, listdir=os.listdir, **kwargs):
-        assert os.path.isdir(source_folder)
+    def __init__(self, source_folder=None, destination_folder=None, working_folder=None, cmd_compress="""7z a '{destination_file}'""", cmd_decompress="""7z e -o'{destination_folder}'""", cmd_call=subprocess.call, cmd_remove=os.remove, cmd_move=shutil.move, cmd_listdir=os.listdir, **kwargs):
         self.source_folder = os.path.abspath(source_folder)
-
-        self.cmd_decompress = tuple(cmd_decompress.split(' '))
-        self.cmd_compress = tuple(cmd_compress.split(' '))
-        self.cmd = cmd
-        self.move = move
-        self.remove = remove
-        self.listdir = listdir
-
+        assert os.path.isdir(self.source_folder)
         self.destination_folder = os.path.abspath(destination_folder or source_folder)
+        assert os.path.isdir(self.destination_folder)
         self.working_folder = os.path.abspath(working_folder) if working_folder else None
-        self.temp_folder = None
+
+        def _cmd_call_string(cmd_string, *args, **kwargs):
+            return cmd_call(cmd_string.format(**kwargs).split(' ') + args)
+
+        self.cmd = {
+            'compress': partial(_cmd_call_string, cmd_compress),
+            'decompress': partial(_cmd_call_string, cmd_decompress),
+            'move': cmd_move,
+            'remove': cmd_remove,
+            'listdir': lambda folder: tuple(map(partial(os.path.join, folder), cmd_listdir(folder))),
+        }
+
+        self.temp_folder_object = None
 
     def __enter__(self):
         if not self.working_folder:
             self.temp_folder_object = TemporaryDirectory()
-            self.temp_folder = self.temp_folder_object.name
-            self.working_folder = self.temp_folder
+            self.working_folder = self.temp_folder_object.name
+        assert os.path.isdir(self.working_folder)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.temp_folder:
+        if self.temp_folder_object:
             self.temp_folder_object.cleanup()
             self.working_folder = None
 
     def prepare(self, source_filename):
         source_filename = os.path.join(self.source_folder, source_filename)
-        if source_filename.endswith('.zip'):
-            self.cmd(self.cmd_decompress + (source_filename, ) + (self.working_folder, ))
-            self.remove(source_filename)
+        if REGEX_IS_COMPRESSED_FILE_EXTENSION.search(source_filename):
+            self.cmd['decompress'](source_filename, destination_folder=self.working_folder)
+            self.cmd['remove'](source_filename)
         else:
-            self.move(source_filename, self.working_folder)
+            self.cmd['move'](source_filename, self.working_folder)
 
     def compress(self, destination_filename):
-        destination_filename = os.path.abspath(os.path.join(self.destination_folder, destination_filename))
-        working_filenames = tuple(map(partial(os.path.join, self.working_folder), self.listdir(self.working_folder)))
-        self.cmd(self.cmd_compress + (destination_filename, ) + working_filenames)
+        destination_filename = os.path.join(self.destination_folder, destination_filename)
+        working_filenames = self.cmd['listdir'](self.working_folder)
+        self.cmd['compress'](*working_filenames, destination_file=destination_filename)
         for filename in working_filenames:
-            self.remove(filename)
+            self.cmd['remove'](filename)
 
 
 def merge(grouped_filelist, compressor):
