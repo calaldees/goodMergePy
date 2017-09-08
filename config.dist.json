@@ -1,0 +1,6 @@
+{
+    "path_xmdb": "./var/xmdb",
+    "cmd_decompress": "7z e -o{destination_folder} {source_file}",
+    "cmd_compress": "7z a -t7z -mx=9 -ms=on -md=128m -mmt=on {destination_file}",
+    "compressed_extension": "7z"
+}
