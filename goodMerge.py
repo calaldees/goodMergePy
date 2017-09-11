@@ -1,3 +1,5 @@
+#!/usr/local/bin/python3
+
 import os
 import re
 import json
@@ -16,19 +18,20 @@ log = logging.getLogger(__name__)
 # Constants --------------------------------------------------------------------
 VERSION = 'v0.0.0'
 DESCRIPTION = """
+`goodMergePy` is a cross platform [Python](https://www.python.org/) re-implementation of a subset of [GoodMerge](http://goodmerge.sourceforge.net/About.php)'s behavior.
+An external compression tool (such as `7z`) is required.
 """
 DEFAULT_CONFIG_FILENAME = 'config.json'
-
-#REGEX_XMDB_TYPE = re.compile(r'Good(.*)\.xmdb', flags=re.IGNORECASE)
-TEMPLATE_FILENAME_XMDB = 'Good{}.xmdb'
 
 
 def compile_ext_regex(exts):
     """
-    >>> ext_regex = compile_ext_regex({'zip', '7z'})
+    >>> ext_regex = compile_ext_regex({'zip', '7z', 'e+'})
     >>> ext_regex.search('.bin')
     >>> ext_regex.search('bob.zip').group(0)
     '.zip'
+    >>> ext_regex.search('Another Test.e+').group(0)
+    '.e+'
 
     """
     for ext in exts:
@@ -36,11 +39,23 @@ def compile_ext_regex(exts):
     return re.compile(r'({})$'.format('|'.join(f'\.{ext}' for ext in exts)))
 
 
+# TODO: these could be moved to config.json values rather than constants
 COMPRESSED_EXTENSIONS = {'zip', '7z', 'gzip', 'tar'}
 REGEX_IS_COMPRESSED_FILE_EXTENSION = compile_ext_regex(COMPRESSED_EXTENSIONS)
 
 
 # Utils ------------------------------------------------------------------------
+
+def _listdir(path='./'):
+    assert os.path.isdir(path)
+    return os.listdir(path)
+
+
+def _listfile(path):
+    assert os.path.isfile(path)
+    with open(path, 'rt') as filehandle:
+        return filehandle.read().split('\n')
+
 
 class SetEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -82,22 +97,12 @@ def parse_xmdb_dom(dom):
 
     def _parse_ext(acc, node):
         acc.add(node.getAttribute('text'))
+        return acc
 
     return {
         'zoned': reduce(_parse_zone, dom.getElementsByTagName('zoned'), {}),
         'ext': reduce(_parse_ext, dom.getElementsByTagName('ext'), set()),
     }
-
-
-def _listdir(path='./'):
-    assert os.path.isdir(path)
-    return os.listdir(path)
-
-
-def _listfile(path):
-    assert os.path.isfile(path)
-    with open(path, 'rt') as filehandle:
-        return filehandle.read().split('\n')
 
 
 def group_filelist(filelist, merge_data={}):
@@ -255,14 +260,19 @@ def get_args():
         description=DESCRIPTION,
     )
 
+    parser.add_argument('--source_folder', action='store', help='path for input roms')
+    parser.add_argument('--destination_folder', action='store', help='optional: If ommited source_folder is used')
     parser.add_argument('--path_xmdb', action='store', help='')
-    parser.add_argument('--xmdb_type', action='store', help='')
-    parser.add_argument('--path_roms', action='store', help='')
-    parser.add_argument('--path_filelist', action='store', help='for debugging')
+    parser.add_argument('--xmdb_filename_template', action='store', help='required if using xmdb_type')
+    parser.add_argument('--xmdb_type', action='store', help='romset shorthand name. e.g. snes, gba, sms')
 
-    parser.add_argument('--config', action='store', help='', default=DEFAULT_CONFIG_FILENAME)
-    parser.add_argument('--dryrun', action='store_true', help='Dont compress files and output json')
-    parser.add_argument('--postmortem', action='store_true', help='Enter debugger on exception')
+    parser.add_argument('--cmd_decompress', action='store', help='templated commandline to decompress. See config.dist.json for examples')
+    parser.add_argument('--cmd_compress', action='store', help='templated commandline to compress. See config.dist.json for examples')
+
+    parser.add_argument('--config', action='store', help='json file with preset commandline paramiter values', default=DEFAULT_CONFIG_FILENAME)
+    parser.add_argument('--path_filelist', action='store', help='read filelist from file for debugging. Used in place of source_folder')
+    parser.add_argument('--dryrun', action='store_true', help='dont compress files and output json')
+    parser.add_argument('--postmortem', action='store_true', help='enter python debugger on error')
     parser.add_argument('--log_level', type=int, help='log level')
     parser.add_argument('--version', action='version', version=VERSION)
 
@@ -299,18 +309,20 @@ def main(**kwargs):
     # Load group data
     xmdb_data = {}
     if kwargs.get('path_xmdb'):
-        if os.path.isfile(kwargs('path_xmdb')):
-            xmdb_filename = kwargs('path_xmdb')
+        xmdb_filename = ''
+        if os.path.isfile(kwargs.get('path_xmdb')):
+            xmdb_filename = kwargs.get('path_xmdb')
+        elif kwargs.get('xmdb_filename_template') and kwargs.get('xmdb_type'):
+            xmdb_filename = os.path.join(kwargs['path_xmdb'], kwargs['xmdb_filename_template'].format(kwargs['xmdb_type']))
+        if os.path.isfile(xmdb_filename):
+            log.info(f'Loading xmdb: {xmdb_filename}')
+            xmdb_data = parse_xmdb_dom(_load_xml(xmdb_filename))
         else:
-            assert kwargs.get('xmdb_type')
-            xmdb_filename = os.path.join(kwargs['path_xmdb'], TEMPLATE_FILENAME_XMDB.format(kwargs['xmdb_type']))
-            assert os.path.isfile(xmdb_filename)
-        log.info(f'Loading xmdb: {xmdb_filename}')
-        xmdb_data = parse_xmdb_dom(_load_xml(xmdb_filename))
+            raise Exception('Insufficient commandline variables provided to identify xmdb file.')
 
     # Filter filelist to known extensions
-    exts = xmdb_data.get('ext', set()) | COMPRESSED_EXTENSIONS
-
+    regex_exts = compile_ext_regex(xmdb_data.get('ext', set()) | COMPRESSED_EXTENSIONS)
+    filelist = tuple(filter(regex_exts.search, filelist))
 
     # Grouping Logic
     grouped_filelist = group_filelist(filelist=filelist, merge_data=xmdb_data)
