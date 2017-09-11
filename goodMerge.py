@@ -22,7 +22,23 @@ DEFAULT_CONFIG_FILENAME = 'config.json'
 #REGEX_XMDB_TYPE = re.compile(r'Good(.*)\.xmdb', flags=re.IGNORECASE)
 TEMPLATE_FILENAME_XMDB = 'Good{}.xmdb'
 
-REGEX_IS_COMPRESSED_FILE_EXTENSION = re.compile(r'(\.zip|\.7z|\.gzip\.tar)$')
+
+def compile_ext_regex(exts):
+    """
+    >>> ext_regex = compile_ext_regex({'zip', '7z'})
+    >>> ext_regex.search('.bin')
+    >>> ext_regex.search('bob.zip').group(0)
+    '.zip'
+
+    """
+    for ext in exts:
+        assert re.match(r'\w+$', ext)
+    return re.compile(r'({})$'.format('|'.join(f'\.{ext}' for ext in exts)))
+
+
+COMPRESSED_EXTENSIONS = {'zip', '7z', 'gzip', 'tar'}
+REGEX_IS_COMPRESSED_FILE_EXTENSION = compile_ext_regex(COMPRESSED_EXTENSIONS)
+
 
 # Utils ------------------------------------------------------------------------
 
@@ -48,9 +64,9 @@ def parse_xmdb_dom(dom):
 
     TODO: Doctest
     """
-    def _parse_zone(acc, zone):
-        #deferred = bool(zone.getAttribute('deferred'))
-        childNodeElements = tuple(filter(lambda node: node.nodeType == node.ELEMENT_NODE, zone.childNodes))
+    def _parse_zone(acc, node):
+        #deferred = bool(node.getAttribute('deferred'))
+        childNodeElements = tuple(filter(lambda node: node.nodeType == node.ELEMENT_NODE, node.childNodes))
         if not childNodeElements:
             return acc
         parent_name = childNodeElements[0].getAttribute('name')
@@ -64,20 +80,24 @@ def parse_xmdb_dom(dom):
         acc[parent_name] = reduce(_group_nodes, childNodeElements[1:], {'regex': set(), 'clones': set()})
         return acc
 
+    def _parse_ext(acc, node):
+        acc.add(node.getAttribute('text'))
+
     return {
-        'zoned': reduce(_parse_zone, dom.getElementsByTagName('zoned'), {})
+        'zoned': reduce(_parse_zone, dom.getElementsByTagName('zoned'), {}),
+        'ext': reduce(_parse_ext, dom.getElementsByTagName('ext'), set()),
     }
 
 
-def get_filelist(path_roms=None, path_filelist=None):
-    assert bool(path_roms) ^ bool(path_filelist), 'path_roms or path_filelist'
-    # Read filelist
-    if path_filelist and os.path.isfile(path_filelist):
-        with open(path_filelist, 'rt') as filehandle:
-            return filehandle.read().split('\n')
-    path_roms = path_roms or './'
-    assert os.path.isdir(path_roms)
-    return os.listdir(path_roms)
+def _listdir(path='./'):
+    assert os.path.isdir(path)
+    return os.listdir(path)
+
+
+def _listfile(path):
+    assert os.path.isfile(path)
+    with open(path, 'rt') as filehandle:
+        return filehandle.read().split('\n')
 
 
 def group_filelist(filelist, merge_data={}):
@@ -235,11 +255,10 @@ def get_args():
         description=DESCRIPTION,
     )
 
-    parser.add_argument('--type', action='store', help='')
     parser.add_argument('--path_xmdb', action='store', help='')
+    parser.add_argument('--xmdb_type', action='store', help='')
     parser.add_argument('--path_roms', action='store', help='')
     parser.add_argument('--path_filelist', action='store', help='for debugging')
-
 
     parser.add_argument('--config', action='store', help='', default=DEFAULT_CONFIG_FILENAME)
     parser.add_argument('--dryrun', action='store_true', help='Dont compress files and output json')
@@ -271,16 +290,27 @@ def get_args():
 # Main -------------------------------------------------------------------------
 
 def main(**kwargs):
-    filelist = get_filelist(path_roms=kwargs.get('source_folder'), path_filelist=kwargs.get('path_filelist'))
+    if kwargs.get('path_filelist'):
+        filelist = _listfile(kwargs.get('path_filelist'))
+    else:
+        filelist = _listdir(kwargs.get('source_folder'))
     assert filelist
 
     # Load group data
     xmdb_data = {}
-    if kwargs.get('path_xmdb') and kwargs.get('type'):
-        xmdb_filename = os.path.join(kwargs['path_xmdb'], TEMPLATE_FILENAME_XMDB.format(kwargs['type']))
-        assert os.path.isfile(xmdb_filename)
+    if kwargs.get('path_xmdb'):
+        if os.path.isfile(kwargs('path_xmdb')):
+            xmdb_filename = kwargs('path_xmdb')
+        else:
+            assert kwargs.get('xmdb_type')
+            xmdb_filename = os.path.join(kwargs['path_xmdb'], TEMPLATE_FILENAME_XMDB.format(kwargs['xmdb_type']))
+            assert os.path.isfile(xmdb_filename)
         log.info(f'Loading xmdb: {xmdb_filename}')
         xmdb_data = parse_xmdb_dom(_load_xml(xmdb_filename))
+
+    # Filter filelist to known extensions
+    exts = xmdb_data.get('ext', set()) | COMPRESSED_EXTENSIONS
+
 
     # Grouping Logic
     grouped_filelist = group_filelist(filelist=filelist, merge_data=xmdb_data)
