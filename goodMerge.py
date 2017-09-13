@@ -9,11 +9,15 @@ from collections import defaultdict
 from tempfile import TemporaryDirectory
 import shutil
 from functools import partial
+from itertools import chain
 import subprocess
 import logging
 
 log = logging.getLogger(__name__)
 
+
+def os_path_normalize(*args, **kwargs):
+    return os.path.abspath(os.path.expanduser(*args, **kwargs), **kwargs)
 
 # Constants --------------------------------------------------------------------
 VERSION = 'v0.0.0'
@@ -84,7 +88,14 @@ def parse_xmdb_dom(dom):
         childNodeElements = tuple(filter(lambda node: node.nodeType == node.ELEMENT_NODE, node.childNodes))
         if not childNodeElements:
             return acc
-        parent_name = childNodeElements[0].getAttribute('name')
+        if node.tagName == 'parent':
+            parent_name = node.getAttribute('name')
+        elif node.tagName == 'zoned':
+            parent_name = childNodeElements[0].getAttribute('name')
+            childNodeElements = childNodeElements[1:]
+        else:
+            log.debug(f'Unsupported element {node.tagName}')
+            return acc
         def _group_nodes(acc, node):
             if node.nodeType == node.ELEMENT_NODE:
                 if node.tagName in ('bias', 'clone') and node.getAttribute('name'):
@@ -92,7 +103,7 @@ def parse_xmdb_dom(dom):
                 if node.tagName in ('group'):
                     acc['regex'].add(node.getAttribute('reg'))
             return acc
-        acc[parent_name] = reduce(_group_nodes, childNodeElements[1:], {'regex': set(), 'clones': set()})
+        acc[parent_name] = reduce(_group_nodes, childNodeElements, {'regex': set(), 'clones': set()})
         return acc
 
     def _parse_ext(acc, node):
@@ -101,6 +112,7 @@ def parse_xmdb_dom(dom):
 
     return {
         'zoned': reduce(_parse_zone, dom.getElementsByTagName('zoned'), {}),
+        'parent': reduce(_parse_zone, dom.getElementsByTagName('parent'), {}),
         'ext': reduce(_parse_ext, dom.getElementsByTagName('ext'), set()),
     }
 
@@ -126,14 +138,16 @@ def group_filelist(filelist, merge_data={}):
     ...         'Unrelated Name.zip',
     ...     ),
     ...     merge_data=parse_xmdb_dom(_load_xml('''<?xml version="1.0"?><!DOCTYPE romsets SYSTEM "GoodMerge.dtd">
+    ...         <parent name="Rom Name 2">
+    ...             <group reg="^Rom Name 2"/>
+    ...         </parent>
     ...         <zoned>
     ...             <bias zone="En" name="Rom Name 2 - More Example"/>
-    ...             <bias zone="J" name="Rom Name J - Japanese name"/>
-    ...             <group reg="^Rom Name 2"/>
+    ...             <clone zone="J" name="Rom Name J - Japanese name"/>
     ...         </zoned>
     ...     '''))
     ... ), cls=SetEncoder)
-    '{"Rom Name 2 - More Example": ["Rom Name 2 - More Example Better [E].zip", "Rom Name 2 - More Example [U] [!].zip", "Rom Name J - Japanese name [J].zip"], "Unrelated Name": ["Unrelated Name.zip"]}'
+    '{"Rom Name 2": ["Rom Name 2 - More Example Better [E].zip", "Rom Name 2 - More Example [U] [!].zip", "Rom Name J - Japanese name [J].zip"], "Unrelated Name": ["Unrelated Name.zip"]}'
 
     """
 
@@ -176,7 +190,10 @@ def group_filelist(filelist, merge_data={}):
 
         return acc
 
-    return reduce(parse_zone, merge_data.get('zoned', {}).items(), grouped_filelist)
+    return reduce(parse_zone, chain(
+        merge_data.get('zoned', {}).items(),
+        merge_data.get('parent', {}).items(),
+    ), grouped_filelist)
 
 
 class CompressionHelperTempfolder():
@@ -184,11 +201,11 @@ class CompressionHelperTempfolder():
     """
     def __init__(self, source_folder=None, destination_folder=None, working_folder=None, cmd_compress="""7z a {destination_file}""", cmd_decompress="""7z e -o{destination_folder}""", cmd_call=subprocess.call, cmd_remove=os.remove, cmd_move=shutil.move, cmd_listdir=os.listdir, compressed_extension='7z', **kwargs):
         assert source_folder
-        self.source_folder = os.path.abspath(source_folder)
+        self.source_folder = os_path_normalize(source_folder)
         assert os.path.isdir(self.source_folder)
-        self.destination_folder = os.path.abspath(destination_folder or source_folder)
+        self.destination_folder = os_path_normalize(destination_folder or source_folder)
         assert os.path.isdir(self.destination_folder)
-        self.working_folder = os.path.abspath(working_folder) if working_folder else None
+        self.working_folder = os_path_normalize(working_folder) if working_folder else None
         self.compressed_extension = compressed_extension
 
         def _cmd_call_string(cmd_string, *args, **kwargs):
@@ -309,11 +326,12 @@ def main(**kwargs):
     # Load group data
     xmdb_data = {}
     if kwargs.get('path_xmdb'):
+        xmdb_path = os_path_normalize(kwargs.get('path_xmdb'))
         xmdb_filename = ''
-        if os.path.isfile(kwargs.get('path_xmdb')):
-            xmdb_filename = kwargs.get('path_xmdb')
+        if os.path.isfile(xmdb_path):
+            xmdb_filename = xmdb_path
         elif kwargs.get('xmdb_filename_template') and kwargs.get('xmdb_type'):
-            xmdb_filename = os.path.join(kwargs['path_xmdb'], kwargs['xmdb_filename_template'].format(kwargs['xmdb_type']))
+            xmdb_filename = os.path.join(xmdb_path, kwargs['xmdb_filename_template'].format(kwargs['xmdb_type']))
         if os.path.isfile(xmdb_filename):
             log.info(f'Loading xmdb: {xmdb_filename}')
             xmdb_data = parse_xmdb_dom(_load_xml(xmdb_filename))
