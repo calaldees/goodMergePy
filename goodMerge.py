@@ -28,24 +28,21 @@ An external compression tool (such as `7z`) is required.
 DEFAULT_CONFIG_FILENAME = 'config.json'
 
 
-def compile_ext_regex(exts):
+def endswith_oneof(s, exts=set()):
     """
-    >>> ext_regex = compile_ext_regex({'zip', '7z', 'e+'})
-    >>> ext_regex.search('.bin')
-    >>> ext_regex.search('bob.zip').group(0)
-    '.zip'
-    >>> ext_regex.search('Another Test.e+').group(0)
-    '.e+'
-
+    >>> exts = {'zip', '7z', 'e+'}
+    >>> endswith_oneof('.bin', exts)
+    False
+    >>> endswith_oneof('bob.zip', exts)
+    True
+    >>> endswith_oneof('Another Test.e+', exts)
+    True
     """
-    for ext in exts:
-        assert re.match(r'\w+$', ext)
-    return re.compile(r'({})$'.format('|'.join(f'\.{ext}' for ext in exts)))
+    return any(s.endswith(ext) for ext in exts)
 
 
 # TODO: these could be moved to config.json values rather than constants
 COMPRESSED_EXTENSIONS = {'zip', '7z', 'gzip', 'tar'}
-REGEX_IS_COMPRESSED_FILE_EXTENSION = compile_ext_regex(COMPRESSED_EXTENSIONS)
 
 
 # Utils ------------------------------------------------------------------------
@@ -138,17 +135,20 @@ def group_filelist(filelist, merge_data={}):
     ...         'Unrelated Name.zip',
     ...     ),
     ...     merge_data=parse_xmdb_dom(_load_xml('''<?xml version="1.0"?><!DOCTYPE romsets SYSTEM "GoodMerge.dtd">
-    ...         <parent name="Rom Name 2">
-    ...             <group reg="^Rom Name 2"/>
-    ...         </parent>
-    ...         <zoned>
-    ...             <bias zone="En" name="Rom Name 2 - More Example"/>
-    ...             <clone zone="J" name="Rom Name J - Japanese name"/>
-    ...         </zoned>
+    ...         <romsets><set name="Test" version="0.00">
+    ...             <parent name="Rom Name 2">
+    ...                 <group reg="^Rom Name 2"/>
+    ...             </parent>
+    ...             <zoned>
+    ...                 <bias zone="En" name="Rom Name 2 - More Example"/>
+    ...                 <clone zone="J" name="Rom Name J - Japanese name"/>
+    ...             </zoned>
+    ...         </set></romsets>
     ...     '''))
     ... ), cls=SetEncoder)
-    '{"Rom Name 2": ["Rom Name 2 - More Example Better [E].zip", "Rom Name 2 - More Example [U] [!].zip", "Rom Name J - Japanese name [J].zip"], "Unrelated Name": ["Unrelated Name.zip"]}'
+    '{"Unrelated Name": ["Unrelated Name.zip"], "Rom Name 2": ["Rom Name 2 - More Example Better [E].zip", "Rom Name 2 - More Example [U] [!].zip", "Rom Name J - Japanese name [J].zip"]}'
 
+    TODO: The above test is flaky and implementation dependent. We should sort the key order alphabetically
     """
 
     def _normalize_filename(filename):
@@ -165,17 +165,17 @@ def group_filelist(filelist, merge_data={}):
     grouped_filelist = reduce(group_filelist, filelist, defaultdict(set))
 
     # Parse 'Zones' - These associate esoteric names with the primary set
-    def parse_zone(acc, zone_data):
-        parent_name, data = zone_data
+    def parse_group_node(acc, parent_name_pairedwith_xmdb):
+        parent_name, xmdb_data = parent_name_pairedwith_xmdb
         parent_name = _normalize_filename(parent_name)
 
         # Identify groups
         to_merge = set()
-        to_merge |= data['clones']
+        to_merge |= xmdb_data['clones']
         to_merge |= {
             name
             for name in acc.keys()
-            for regex in data['regex']
+            for regex in xmdb_data['regex']
             if re.match(regex, name, flags=re.IGNORECASE)
         }
         to_merge = {_normalize_filename(name) for name in to_merge}
@@ -190,7 +190,7 @@ def group_filelist(filelist, merge_data={}):
 
         return acc
 
-    return reduce(parse_zone, chain(
+    return reduce(parse_group_node, chain(
         merge_data.get('zoned', {}).items(),
         merge_data.get('parent', {}).items(),
     ), grouped_filelist)
@@ -239,7 +239,7 @@ class CompressionHelperTempfolder():
         starting_working_file_count = current_working_files_count()
         source_filename = os.path.join(self.source_folder, source_filename)
         assert os.path.exists(source_filename)
-        if REGEX_IS_COMPRESSED_FILE_EXTENSION.search(source_filename):
+        if endswith_oneof(source_filename, COMPRESSED_EXTENSIONS):
             self.cmd['decompress'](source_filename, destination_folder=self.working_folder)
         else:
             self.cmd['move'](source_filename, self.working_folder)
@@ -339,8 +339,8 @@ def main(**kwargs):
             raise Exception('Insufficient commandline variables provided to identify xmdb file.')
 
     # Filter filelist to known extensions
-    regex_exts = compile_ext_regex(xmdb_data.get('ext', set()) | COMPRESSED_EXTENSIONS)
-    filelist = tuple(filter(regex_exts.search, filelist))
+    filename_endswith_supported_extension = partial(endswith_oneof, exts=xmdb_data.get('ext', set()) | COMPRESSED_EXTENSIONS)
+    filelist = tuple(filter(filename_endswith_supported_extension, filelist))
 
     # Grouping Logic
     grouped_filelist = group_filelist(filelist=filelist, merge_data=xmdb_data)
