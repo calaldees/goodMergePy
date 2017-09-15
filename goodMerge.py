@@ -27,6 +27,7 @@ An external compression tool (such as `7z`) is required.
 """
 DEFAULT_CONFIG_FILENAME = 'config.json'
 
+REGEX_FLAGS = re.compile(r'(\(.+?\)|\[.+?\])')
 
 def endswith_oneof(s, exts=set()):
     """
@@ -98,9 +99,12 @@ def parse_xmdb_dom(dom):
                 if node.tagName in ('bias', 'clone') and node.getAttribute('name'):
                     acc['clones'].add(node.getAttribute('name'))
                 if node.tagName in ('group'):
+                    #regex_type = 'regex' if node.getAttribute('type') != 'filename' else 'regex_filename'
                     acc['regex'].add(node.getAttribute('reg'))
             return acc
-        acc[parent_name] = reduce(_group_nodes, childNodeElements, {'regex': set(), 'clones': set()})
+        acc[parent_name] = reduce(_group_nodes, childNodeElements, {
+            'regex': set(), 'clones': set(),
+        })
         return acc
 
     def _parse_ext(acc, node):
@@ -152,17 +156,19 @@ def group_filelist(filelist, merge_data={}):
     """
 
     def _normalize_filename(filename):
-        normalized_filename = re.match(r'[^([]+', filename).group(0).strip()
-        normalized_filename = re.sub(r'.zip$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
-        normalized_filename = normalized_filename.lower().title()
+        flags = set(REGEX_FLAGS.findall(filename))
+        normalized_filename = REGEX_FLAGS.sub('', filename)
+        #normalized_filename = re.match(r'[^([]+', filename).group(0).strip()
+        normalized_filename = re.sub(r'\..{0,4}$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
+        normalized_filename = normalized_filename.strip().lower().title()
         return normalized_filename
 
-    def group_filelist(acc, filename):
+    def group_by_filename(acc, filename):
         if not filename:
             return acc
         acc[_normalize_filename(filename)].add(filename)
         return acc
-    grouped_filelist = reduce(group_filelist, filelist, defaultdict(set))
+    grouped_filelist = reduce(group_by_filename, filelist, defaultdict(set))
 
     # Parse 'Zones' - These associate esoteric names with the primary set
     def parse_group_node(acc, parent_name_pairedwith_xmdb):
