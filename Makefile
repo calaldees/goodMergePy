@@ -12,7 +12,7 @@ var/xmdb:
 	unzip
 
 run:
-	python3 goodMerge.py --postmortem --log_level 0 --path_filelist ./var/rom_lists/gba.txt --type gba
+	python3 goodMerge.py --postmortem --log_level 0 --path_filelist ./var/rom_lists/gba.txt --xmdb_type gba --postmortem
 
 test:
 	pytest --pdb --doctest-modules

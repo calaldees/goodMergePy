@@ -12,6 +12,7 @@ from functools import partial
 from itertools import chain
 import subprocess
 import logging
+import operator
 
 log = logging.getLogger(__name__)
 
@@ -26,8 +27,8 @@ DESCRIPTION = """
 An external compression tool (such as `7z`) is required.
 """
 DEFAULT_CONFIG_FILENAME = 'config.json'
+DEFAULT_REGEX_FLAGS = re.compile(r'(\(.+?\)|\[.+?\])')
 
-REGEX_FLAGS = re.compile(r'(\(.+?\)|\[.+?\])')
 
 def endswith_oneof(s, exts=set()):
     """
@@ -111,10 +112,15 @@ def parse_xmdb_dom(dom):
         acc.add(node.getAttribute('text'))
         return acc
 
+    def get_flag(dom):
+        for flag_node in dom.getElementsByTagName('flag'):
+            return flag_node.getAttribute('reg')
+
     return {
         'zoned': reduce(_parse_zone, dom.getElementsByTagName('zoned'), {}),
         'parent': reduce(_parse_zone, dom.getElementsByTagName('parent'), {}),
         'ext': reduce(_parse_ext, dom.getElementsByTagName('ext'), set()),
+        'flag': get_flag(dom),
     }
 
 
@@ -154,12 +160,13 @@ def group_filelist(filelist, merge_data={}):
 
     TODO: The above test is flaky and implementation dependent. We should sort the key order alphabetically
     """
+    REGEX_FLAGS = re.compile(merge_data.get('flags')) if merge_data.get('flags') else DEFAULT_REGEX_FLAGS
 
     def _normalize_filename(filename):
-        flags = set(REGEX_FLAGS.findall(filename))
-        normalized_filename = REGEX_FLAGS.sub('', filename)
+        flags = set(match.group(0) for match in REGEX_FLAGS.finditer(filename))
+        normalized_filename = reduce(lambda filename, flag: filename.replace(flag, ''), flags, filename)
         #normalized_filename = re.match(r'[^([]+', filename).group(0).strip()
-        normalized_filename = re.sub(r'\..{0,4}$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
+        normalized_filename = re.sub(r'\..{1,4}$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
         normalized_filename = normalized_filename.strip().lower().title()
         return normalized_filename
 
@@ -174,6 +181,14 @@ def group_filelist(filelist, merge_data={}):
     def parse_group_node(acc, parent_name_pairedwith_xmdb):
         parent_name, xmdb_data = parent_name_pairedwith_xmdb
         parent_name = _normalize_filename(parent_name)
+        if parent_name not in acc:
+            log.warn(f'{parent_name} not in filelist')
+            return acc
+
+        def is_regex_trying_to_match_flags(regex):
+            return r'\(' in regex
+        regexs_on_keys = tuple(filter(lambda regex: not is_regex_trying_to_match_flags(regex), xmdb_data['regex']))
+        regexs_on_filenames = tuple(filter(is_regex_trying_to_match_flags, xmdb_data['regex']))
 
         # Identify groups
         to_merge = set()
@@ -181,7 +196,7 @@ def group_filelist(filelist, merge_data={}):
         to_merge |= {
             name
             for name in acc.keys()
-            for regex in xmdb_data['regex']
+            for regex in regexs_on_keys
             if re.match(regex, name, flags=re.IGNORECASE)
         }
         to_merge = {_normalize_filename(name) for name in to_merge}
@@ -193,6 +208,13 @@ def group_filelist(filelist, merge_data={}):
                 continue
             acc[parent_name] |= acc[name]
             del acc[name]
+
+        # HACK: Special case filenames. I'm so so sorry ...
+        for regex in regexs_on_filenames:
+            for key, filenames in acc.items():
+                filenames_to_steal = {filename for filename in filenames if re.match(regex, filename, flags=re.IGNORECASE)}
+                acc[parent_name] |= filenames_to_steal
+                filenames -= filenames_to_steal
 
         return acc
 
@@ -358,7 +380,8 @@ def main(**kwargs):
             merge(grouped_filelist, compressor)
     else:
         # Output json
-        print(json.dumps(grouped_filelist, cls=SetEncoder))
+        #print(json.dumps(grouped_filelist, cls=SetEncoder))
+        pass
 
 
 def postmortem(func, *args, **kwargs):
