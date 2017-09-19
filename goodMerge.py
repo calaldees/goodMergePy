@@ -101,10 +101,13 @@ def parse_xmdb_dom(dom):
                     acc['clones'].add(node.getAttribute('name'))
                 if node.tagName in ('group'):
                     #regex_type = 'regex' if node.getAttribute('type') != 'filename' else 'regex_filename'
-                    acc['regex'].add(node.getAttribute('reg'))
+                    if node.getAttribute('reg'):
+                        acc['regex'].add(node.getAttribute('reg'))
+                    if node.getAttribute('regf'):
+                        acc['regexf'].add(node.getAttribute('regf'))
             return acc
         acc[parent_name] = reduce(_group_nodes, childNodeElements, {
-            'regex': set(), 'clones': set(),
+            'regex': set(), 'clones': set(), 'regexf': set(),
         })
         return acc
 
@@ -181,14 +184,13 @@ def group_filelist(filelist, merge_data={}):
     def parse_group_node(acc, parent_name_pairedwith_xmdb):
         parent_name, xmdb_data = parent_name_pairedwith_xmdb
         parent_name = _normalize_filename(parent_name)
-        if parent_name not in acc:
-            log.warn(f'{parent_name} not in filelist')
-            return acc
+        acc[parent_name]  # Create entry in filelist (some alias names wont be present yet) [acc is a defaultdict]
 
-        def is_regex_trying_to_match_flags(regex):
-            return r'\(' in regex
-        regexs_on_keys = tuple(filter(lambda regex: not is_regex_trying_to_match_flags(regex), xmdb_data['regex']))
-        regexs_on_filenames = tuple(filter(is_regex_trying_to_match_flags, xmdb_data['regex']))
+        #def is_regex_trying_to_match_flags(regex):
+        #    return r'\(' in regex or r'\)' in regex
+        #regexs_on_filenames = tuple(filter(is_regex_trying_to_match_flags, xmdb_data['regex']))
+        regexs_on_keys = xmdb_data.get('regex') or ()
+        regexs_on_filenames = xmdb_data.get('regexf') or ()
 
         # Identify groups
         to_merge = set()
@@ -212,9 +214,10 @@ def group_filelist(filelist, merge_data={}):
         # HACK: Special case filenames. I'm so so sorry ...
         for regex in regexs_on_filenames:
             for key, filenames in acc.items():
-                filenames_to_steal = {filename for filename in filenames if re.match(regex, filename, flags=re.IGNORECASE)}
+                filenames_to_steal = {filename for filename in filenames if re.search(regex, filename, flags=re.IGNORECASE)}
                 acc[parent_name] |= filenames_to_steal
-                filenames -= filenames_to_steal
+                if key != parent_name:
+                    filenames -= filenames_to_steal
 
         return acc
 
@@ -380,8 +383,7 @@ def main(**kwargs):
             merge(grouped_filelist, compressor)
     else:
         # Output json
-        #print(json.dumps(grouped_filelist, cls=SetEncoder))
-        pass
+        print(json.dumps(grouped_filelist, cls=SetEncoder))
 
 
 def postmortem(func, *args, **kwargs):
