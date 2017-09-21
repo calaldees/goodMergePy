@@ -27,7 +27,7 @@ DESCRIPTION = """
 An external compression tool (such as `7z`) is required.
 """
 DEFAULT_CONFIG_FILENAME = 'config.json'
-DEFAULT_REGEX_FLAGS = re.compile(r'(\(.+?\)|\[.+?\])')
+DEFAULT_REGEX_FLAG = re.compile(r'(\(.+?\)|\[.+?\])')
 
 
 def endswith_oneof(s, exts=set()):
@@ -163,14 +163,14 @@ def group_filelist(filelist, merge_data={}):
 
     TODO: The above test is flaky and implementation dependent. We should sort the key order alphabetically
     """
-    REGEX_FLAGS = re.compile(merge_data.get('flags')) if merge_data.get('flags') else DEFAULT_REGEX_FLAGS
+    REGEX_FLAG = re.compile(merge_data.get('flag')) if merge_data.get('flag') else DEFAULT_REGEX_FLAG
 
     def _normalize_filename(filename):
-        flags = set(match.group(0) for match in REGEX_FLAGS.finditer(filename))
+        flags = set(match.group(0) for match in REGEX_FLAG.finditer(filename))
         normalized_filename = reduce(lambda filename, flag: filename.replace(flag, ''), flags, filename)
         #normalized_filename = re.match(r'[^([]+', filename).group(0).strip()
         normalized_filename = re.sub(r'\..{1,4}$', '', normalized_filename)  # Remove extensions  TODO: added exts from xml
-        normalized_filename = normalized_filename.strip().lower().title()
+        normalized_filename = re.sub(r' +', r' ', normalized_filename.strip().lower().title())
         return normalized_filename
 
     def group_by_filename(acc, filename):
@@ -317,6 +317,8 @@ def get_args():
     parser.add_argument('--cmd_decompress', action='store', help='templated commandline to decompress. See config.dist.json for examples')
     parser.add_argument('--cmd_compress', action='store', help='templated commandline to compress. See config.dist.json for examples')
 
+    parser.add_argument('--exclude_file_regex', action='store', help='regex to exclude files from filelist')
+
     parser.add_argument('--config', action='store', help='json file with preset commandline paramiter values', default=DEFAULT_CONFIG_FILENAME)
     parser.add_argument('--path_filelist', action='store', help='read filelist from file for debugging. Used in place of source_folder')
     parser.add_argument('--dryrun', action='store_true', help='dont compress files and output json')
@@ -375,6 +377,18 @@ def main(**kwargs):
 
     # Grouping Logic
     grouped_filelist = group_filelist(filelist=filelist, merge_data=xmdb_data)
+
+    # Exclude
+    if kwargs.get('exclude_file_regex'):
+        exclude_file_regex = re.compile(kwargs['exclude_file_regex'], flags=re.IGNORECASE)
+        keys_to_remove = set()
+        for key, filenames in grouped_filelist.items():
+            filenames -= {filename for filename in filenames if exclude_file_regex.search(filename)}
+            if not filenames or exclude_file_regex.search(key):
+                keys_to_remove.add(key)
+        for key in keys_to_remove:
+            del grouped_filelist[key]
+
     log.info(f'filelist: {len(filelist)} grouped_filelist: {len(grouped_filelist.keys())}')
 
     if kwargs.get('source_folder') and not kwargs.get('dryrun'):
