@@ -17,17 +17,24 @@ import operator
 log = logging.getLogger(__name__)
 
 
-def os_path_normalize(*args, **kwargs):
-    return os.path.abspath(os.path.expanduser(*args, **kwargs), **kwargs)
+# Constants -------------------------------------------------------------------
 
-# Constants --------------------------------------------------------------------
-VERSION = 'v0.0.0'
+VERSION = 'v0.1.0'
 DESCRIPTION = """
 `goodMergePy` is a cross platform [Python](https://www.python.org/) re-implementation of a subset of [GoodMerge](http://goodmerge.sourceforge.net/About.php)'s behavior.
 An external compression tool (such as `7z`) is required.
 """
 DEFAULT_CONFIG_FILENAME = 'config.json'
 DEFAULT_REGEX_FLAG = re.compile(r'(\(.+?\)|\[.+?\])')
+
+# TODO: these could be moved to config.json values rather than constants
+COMPRESSED_EXTENSIONS = {'zip', '7z', 'gzip', 'tar'}
+
+
+# Utils -----------------------------------------------------------------------
+
+def os_path_normalize(*args, **kwargs):
+    return os.path.abspath(os.path.expanduser(*args, **kwargs), **kwargs)
 
 
 def endswith_oneof(s, exts=set()):
@@ -42,12 +49,6 @@ def endswith_oneof(s, exts=set()):
     """
     return any(s.endswith(ext) for ext in exts)
 
-
-# TODO: these could be moved to config.json values rather than constants
-COMPRESSED_EXTENSIONS = {'zip', '7z', 'gzip', 'tar'}
-
-
-# Utils ------------------------------------------------------------------------
 
 def _listdir(path='./'):
     assert os.path.isdir(path)
@@ -66,6 +67,8 @@ class SetEncoder(json.JSONEncoder):
             return sorted(list(obj))
         return json.JSONEncoder.default(self, obj)
 
+
+# XML Processing --------------------------------------------------------------
 
 def _load_xml(source):
     if os.path.isfile(source):
@@ -126,6 +129,8 @@ def parse_xmdb_dom(dom):
         'flag': get_flag(dom),
     }
 
+
+# Merge Behavior -------------------------------------------------------------
 
 def group_filelist(filelist, merge_data={}):
     """
@@ -226,6 +231,8 @@ def group_filelist(filelist, merge_data={}):
         merge_data.get('parent', {}).items(),
     ), grouped_filelist)
 
+
+# Compression -----------------------------------------------------------------
 
 class CompressionHelperTempfolder():
     """
@@ -350,13 +357,14 @@ def get_args():
 # Main -------------------------------------------------------------------------
 
 def main(**kwargs):
+    # Get input filelist (from file or folder)
     if kwargs.get('path_filelist'):
         filelist = _listfile(kwargs.get('path_filelist'))
     else:
         filelist = _listdir(kwargs.get('source_folder'))
     assert filelist
 
-    # Load group data
+    # Load group (xmdb) data
     xmdb_data = {}
     if kwargs.get('path_xmdb'):
         xmdb_path = os_path_normalize(kwargs.get('path_xmdb'))
@@ -378,7 +386,7 @@ def main(**kwargs):
     # Grouping Logic
     grouped_filelist = group_filelist(filelist=filelist, merge_data=xmdb_data)
 
-    # Exclude
+    # Exclude files (with regex)
     if kwargs.get('exclude_file_regex'):
         exclude_file_regex = re.compile(kwargs['exclude_file_regex'], flags=re.IGNORECASE)
         keys_to_remove = set()
@@ -390,7 +398,6 @@ def main(**kwargs):
             del grouped_filelist[key]
 
     log.info(f'filelist: {len(filelist)} grouped_filelist: {len(grouped_filelist.keys())}')
-
     if kwargs.get('source_folder') and not kwargs.get('dryrun'):
         # Merge & Compress
         with CompressionHelperTempfolder(**kwargs) as compressor:
