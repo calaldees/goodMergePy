@@ -1,8 +1,9 @@
 <?xml version="1.0"?><!DOCTYPE romsets SYSTEM "GoodMerge.dtd">
 
 <romsets>
-<set name="GBA" version="3.14">
-<!--Nintendo Game Boy Advance-->
+<set name="GBA" version="3.22">
+<!--Nintendo Game Boy Advance -->
+<!-- calaldees's abomination of a hack of the 3.14 xmdb -->
 
 <options>
 <ext text="gba"/>
@@ -10,7 +11,7 @@
 <ext text="mb"/>
 <ext text="bin"/>
 <ext text="e+"/>
-<flag reg=" (\(([AChEFGIJKNSU]{0,2}|Beta(-[0-9])?|.* ?Hack|iQue|Unl|MB(2GBA)?)\)|\[)"/>
+<flag reg="(\(([AChEFGIJKNSU]{0,2}|Beta(-[0-9])?|M[0-9]?|.* ?Hack|iQue|Unl|MB(2GBA)?|EEPROM|FACRASH|SRAM|[vV][0-9. ]+.*?|Fre.*?|Ita.*?|Spa.*?|Ger.*?)\)|\[.*?\])"/>
 <hackflag reg=" \("/>
 <ignore reg=" \+ [0-9]{1,3} NES"/>
 </options>
@@ -100,6 +101,8 @@
 <parent name="Emulation (SNES)"><group reg="^(PocketSNES V|SNESAdvance|Snezziboy Emulator v)"/></parent>
 <parent name="Nintendo Promos and Demos"><group reg=" by Nintendo"/></parent>
 
+<parent name="Powder By Jeff Lait"><group reg="^Powder By Jeff Lait"/></parent>
+
 <parent name="Public Domain (Misc)"><group reg="^(Berzerk|Barbarian|Buffy|Cutegotchi Advance) .*\(PD\)"/></parent>
 <parent name="Public Domain (Audio Players)"><group reg="^(228 Elements of English Tongue Audio Part by LiYang|ADPCM|Adventures in Odyssey -|Air Pocket Advance Sound Test by Inside Cap|Apex Audio System|C.S.Lewis -|Chinese Music|Chyi Chin Songs|Coal Chamber - Darkest Days 2002 - Mpa2 Pack by buZz|Compressed Audio Player Demo -|D12 - D12 World|Engine Software's GBA Sound&amp;Music Replayer V1\.92f Demo|Esofttech\.com Audio Demo|F\.R\.A\.S\. - Free Realtime Audio System|GBA Audio - 9min of HQAudio by Predator Development|GBA MP3|GBalpha|GBASID|GroovyAudio\.com|GSM Player -|Gu Ji GBA MP3 Player|Gundam Seed MP3 Music|Higurashi Sound Test by Air Pocket|KMNZ Sound Test|Krawall Soundsystem|LibAFMTest by Darkfader|Music Box - Macintosh Power Book G3|Music Player Advance -|Organya Demo|Play Mod|PlaySamples|Shakira [12]|Sound Demo - Meridan Dance &amp; A Curious Tale|Sound Engine|SPCemu|SplamSID|ST-Sound Advance by Leonard|Time to Come GBA WAV|Unknown Zombie Audio Story by newwise\.com Part [012][0-9]|WAVPlay) .*\(PD\)"/><group reg="\(4757 Music Box\) \(PD\)"/></parent>
 <parent name="Public Domain (Book Reader Advance)"><group reg="^Book Reader .* by Pat Crowe"/><group reg="\[eb\]"/><group reg="\[ebb\]"/></parent>
@@ -114,6 +117,20 @@
 <parent name="Public Domain (Demos and Examples)"><group reg="(Demo | Example| Test).*\(PD\)"/><group reg=" (ARM|Thumb) Version"/><group reg="^YAGBAT "/><group reg="^(CSAGBLib|Java4GBA by Torlus|Mode|SGADE|Pern Project, The -|PogoShell) .*\(PD\)"/></parent>
 <!-- Moved to the very bottom so (Intro|Trainer) can be processed. -->
 <!--parent name="Public Domain (Misc)"/><group reg="\(PD\)"/></parent-->
+<parent name="Allen Ussher (PD)"><group reg="^Allen Ussher"/></parent>
+<parent name="Valtric Advance (PD)"><group reg="^Valtric Advance"/></parent>
+<parent name="Tuto2"><group reg="^Tuto2"/></parent>
+<parent name="Tunnel Demo By Stephen Stair (PD)"><group reg="^Tunnel Demo"/></parent>
+<parent name="Tsc Pademo (PD)"><group reg="^Tsc Pademo"/></parent>
+<parent name="Tonc Tutorial (PD)"><group reg="^Tonc Tutorial"/></parent>
+<parent name="Sudoku Micro By Phantom (PD)"><group reg="^Sudoku Micro By Phantom"/></parent>
+<parent name="Staringmonkey's Demos (PD)"><group reg="^Staringmonkey"/></parent>
+<parent name="Pikachu Ga Pokeboru Wo Aishimasu By Nokturn And Redah (PD)"><group reg="^Pikachu Ga Pokeboru Wo Aishimasu By Nokturn And Redah"/></parent>
+<parent name="Nintendo Reverse Engineering Project"><group reg="^Nintendo Reverse Engineering Project"/></parent>
+<parent name="Arm &amp; C Examples"><group reg="^Arm &amp; C Examples"/></parent>
+<parent name="Bg Demo"><group reg="^Bg Demo"/></parent>
+Bibliotheque Bgba
+Pokemon Battle-E
 
 <!--GameCube Rips-->
 <parent name="Animal Crossing (GameCube)"><group reg="^Animal Crossing - "/></parent>
@@ -133,10 +150,12 @@
 <parent name="Sonic DX (GameCube)"><group reg="^Sonic DX - "/></parent>
 <parent name="Tom Clancy's Splinter Cell - Pandora Tomorrow (GameCube)"><group reg="^Tom Clancy's Splinter Cell - Pandora Tomorrow Map Loader"/></parent>
 <parent name="WarioWare Inc. (GameCube)"><group reg="^WarioWare Inc. - "/></parent>
+<parent name="Pokemon-E"><group reg="^Pokemon-E"/></parent>
 
 <!--Intros and Menus (Many more in the zoned section)-->
-<parent name="Advance Wars 2 - Black Hole Rising"><group reg="^Advance Wars 2 - Black Hole Rising (Intro|Trainer)"/></parent>
+<parent name="Advance Wars 2 - Black Hole Rising"><group reg="^Advance Wars 2 - Black Hole Rising"/></parent>
 <parent name="An American Tail - Fievel's Gold Rush"><group reg="^An American Tail - Fievel's Gold Rush (Intro|Trainer)"/></parent>
+<parent name="Animal Crossing-E"><group reg="^Animal Crossing-E"/></parent>
 <parent name="Army Men Advance"><group reg="^Army Men Advance (Intro|Trainer)"/></parent>
 <parent name="Asterix &amp; Obelix - PAF! Them All!"><group reg="^Asterix &amp; Obelix - PAF! Them All! (Intro|Trainer)"/></parent>
 <parent name="Atlantis - The Lost Empire"><group reg="^Atlantis - The Lost Empire (Intro|Trainer)"/></parent>
@@ -185,6 +204,7 @@
 <parent name="Lunar Legend"><group reg="^Lunar Legend (Intro|Trainer)"/></parent>
 <parent name="Medal of Honor - Infiltrator"><group reg="^Medal of Honor - Infiltrator (Intro|Trainer)"/></parent>
 <parent name="Medal of Honor - Underground"><group reg="^Medal of Honor - Underground (Intro|Trainer)"/></parent>
+<parent name="Megaman Anthology"><group reg="^Megaman Anthology"/></parent>
 <parent name="Mission Impossible - Operation Surma"><group reg="^Mission Impossible - Operation Surma (Intro|Trainer)"/></parent>
 <parent name="Mortal Kombat Advance"><group reg="^Mortal Kombat Advance (Intro|Trainer)"/></parent>
 <parent name="Muscular Ranking"><group reg="^Muscular Ranking (Intro|Trainer)"/></parent>
@@ -242,7 +262,7 @@
 <parent name="Grand Theft Auto Advance"><clone name="Grand Theft Auto Advance Sample"/></parent><parent name="Hajimete no Orusuban"><group reg="^Hajimete no Orusuban Voice-Spec "/></parent><parent name="Hikaru no Go"><group reg="^Hikaru no Go - Taikenban "/></parent><parent name="Kagetsu Touya"><clone name="Kagetsu Tohya"/></parent>
 <parent name="Invader"><clone name="Kaisertal - Fight the Necronis War"/><group reg="^Invader (Intro|Trainer)"/></parent>
 <parent name="Keitai Denjuu Telefang 2"><group reg="^Keitai Denjuu Telefang 2 - "/></parent>
-<parent name="King of Fighters EX2, The - Howling Blood"><group reg="^King of Fighters EX2, The - Howling Blood V"/></parent>
+<parent name="King of Fighters EX2, The - Howling Blood"><group reg="^King of Fighters EX2"/></parent>
 <parent name="Kizuato"><clone name="Nin-Kizuato Hentai"/></parent><parent name="Koukou Juken Advance Series"><group reg="^Koukou Juken Advance Series - "/>
 <clone name="Eigo Koubunhen"/><group reg="^Eigo Kobuhen "/></parent><parent name="Lizzie McGuire 2 - Lizzie Diaries"><group reg="^Lizzie McGuire 2 - Lizzie Diaries "/></parent>
 <parent name="Medarot Navi"><group reg="^Medarot Navi - "/></parent><parent name="Metroid - Zero Mission"><group reg="^Metroid - Disturbance "/></parent>
@@ -256,9 +276,20 @@
 
 <parent name="Super Robot Taisen - Original Generation 2"><group reg="^Super Robot Taisen - Original Generation 2 "/></parent>
 
-<parent name="Super Robot Taisen A"><group reg="^Super Robot Taisen A "/></parent><parent name="Super Robot Taisen J"><group reg="^Super Robot Taisen J "/></parent><parent name="Tennis no Ouji-sama 2003"><group reg="^Tennis no Ouji-sama 2003 "/></parent>
+<parent name="Super Robot Taisen A"><group reg="^Super Robot Taisen A"/></parent>
+<parent name="Super Robot Taisen D"><group reg="^Super Robot Taisen D"/></parent>
+<parent name="Super Robot Taisen J"><group reg="^Super Robot Taisen J"/></parent>
+<parent name="Super Robot Taisen R"><group reg="^Super Robot Taisen R"/></parent>
+<parent name="Tennis no Ouji-sama 2003"><group reg="^Tennis no Ouji-sama 2003 "/></parent>
+<zoned><bias zone="En" name="Super Robot Taisen - Original Generation"/><clone name="Super Robot Taisen - Original Generation - Big Three Joined (Hack)"/></zoned>
+<zoned><bias zone="En" name="Super Robot Taisen - Original Generation 2"/><group reg="^Super Robot Taisen - Original Generation 2"/></zoned>
+
+<parent name="Super Street Fighter II"><group reg="^Super Street Fighter II"/></parent>
+
 <parent name="Tennis no Ouji-sama 2004"><group reg="^Tennis no Ouji-sama 2004 "/></parent>
+<parent name="Tony Hawk'S Pro Skater 2"><group reg="^Tony Hawk'S Pro Skater 2"/></parent>
 <parent name="Tsukihime"><group reg="^Tsukihime Demo"/></parent>
+<parent name="Tyrian"><group reg="Tyrian"/></parent>
 
 <!--Biased-->
 <zoned><bias zone="U" name="007 - Everything or Nothing"/><bias zone="J" name="James Bond 007 - Everything or Nothing"/></zoned>
@@ -297,7 +328,7 @@
 <zoned><bias zone="U" name="Buffy - The Vampire Slayer"/><bias zone="F" name="Buffy Contre Les Vampires - La Colere de Darkhul"/><bias zone="G" name="Buffy - Im Bann der Daemonen"/></zoned>
 <zoned><bias zone="U" name="Car Battler Joe"/><bias zone="J" name="Gekitou! Car Battler Go!!"/></zoned><zoned><bias zone="U" name="Cartoon Network Collection - Platinum Edition"/><bias zone="F" name="Cartoon Network Collection - Edition Premium"/></zoned><zoned><bias zone="U" name="Cartoon Network Collection - Premium Edition"/>
 <bias zone="F" name="GBA Video - Cartoon Network Collection - Premium Edition"/></zoned><zoned><bias zone="U" name="Cartoon Network Collection - Special Edition"/><bias zone="F" name="Cartoon Network Collection - Edition Speciale"/></zoned><zoned><bias zone="En" name="Castlevania - Aria of Sorrow"/><bias zone="J" name="Castlevania - Akatsuki no Minuet"/><clone name="Castlevania - Akatsuki no Minuet Plus!"/></zoned>
-<zoned><bias zone="U" name="Castlevania - Circle of the Moon"/><bias zone="E" name="Castlevania"/><bias zone="J" name="Akumajou Dracula - Circle of the Moon"/><group reg="^Castlevania (Intro|Trainer)"/></zoned>
+<zoned><bias zone="U" name="Castlevania - Circle of the Moon"/><bias zone="E" name="Castlevania"/><bias zone="J" name="Akumajou Dracula - Circle of the Moon"/><group reg="^Castlevania (Intro|Trainer)"/><group reg="^Akumajou Dracula"/></zoned>
 <zoned><bias zone="En" name="Castlevania - Harmony of Dissonance"/><bias zone="J" name="Castlevania - Byakuya no Concerto"/><group reg="^Castlevania - Harmony of Dissonance (Intro|Trainer)"/></zoned>
 <zoned><bias zone="U" name="Catz"/><bias zone="J" name="Nakayoshi Pet Advance Series 3 - Kawaii Koneko"/></zoned>
 <zoned><bias zone="U" name="CIMA - The Enemy"/><bias zone="J" name="Frontier Stories"/></zoned>
@@ -427,10 +458,10 @@
 <zoned><bias zone="En" name="Megaman Battle Network 6"/><bias zone="J" name="Rockman EXE 6"/><group reg="^Megaman Battle Network 6 - "/><group reg="^Rockman EXE 6 - "/></zoned>
 <zoned><bias zone="En" name="Megaman Zero"/><bias zone="J" name="Rockman Zero"/></zoned>
 <zoned><bias zone="En" name="Megaman Zero 2"/><bias zone="J" name="Rockman Zero 2"/><group reg="^Trainer Menu by Cezar"/></zoned>
-<zoned><bias zone="En" name="Megaman Zero 3"/><bias zone="J" name="Rockman Zero 3"/><group reg="^Rockman Zero 3 (Intro|Trainer)"/></zoned>
+<zoned><bias zone="En" name="Megaman Zero 3"/><bias zone="J" name="Rockman Zero 3"/><group reg="^Rockman Zero 3 (Intro|Trainer)"/><group reg="Megaman Zero 3"/></zoned>
 <zoned><bias zone="En" name="Megaman Zero 4"/><bias zone="J" name="Rockman Zero 4"/></zoned><zoned><bias zone="G" name="Meine Tierarztpraxis"/><bias zone="D" name="Mijn Dierenpraktijk"/></zoned>
-<zoned><bias zone="En" name="Metroid - Zero Mission"/><bias zone="J" name="Metroid - Zero Mission"/><bias zone="Cn" name="Miteluode - Lingdian Renwu"/></zoned>
-<zoned><bias zone="En" name="Metroid Fusion"/><bias zone="J" name="Metroid Fusion"/><bias zone="Cn" name="Miteluode Ronghe"/><clone name="Metroid Fusion - Completion Bonus"/></zoned>
+<zoned><bias zone="En" name="Metroid - Zero Mission"/><bias zone="J" name="Metroid - Zero Mission"/><bias zone="Cn" name="Miteluode - Lingdian Renwu"/><group reg="^Metroid - Zero Mission"/><group reg="^Metroid - Disturbance"/></zoned>
+<zoned><bias zone="En" name="Metroid Fusion"/><bias zone="J" name="Metroid Fusion"/><bias zone="Cn" name="Miteluode Ronghe"/><clone name="Metroid Fusion - Completion Bonus"/><group reg="^Metroid Fusion"/></zoned>
 <zoned><bias zone="U" name="Mobile Suit Gundam Seed - Battle Assault"/><bias zone="J" name="Kidou Senshi Gundam Seed Destiny"/></zoned>
 <zoned><bias zone="U" name="Monster Rancher Advanced"/><bias zone="J" name="Monster Farm Advance"/></zoned>
 <zoned><bias zone="U" name="Monster Rancher Advanced 2"/><bias zone="J" name="Monster Farm Advance 2"/></zoned>
@@ -449,9 +480,47 @@
 <zoned><bias zone="U" name="Pinobee - Wings of Adventure"/><bias zone="J" name="Pinobee - Quest of Heart"/></zoned>
 <zoned><bias zone="U" name="Pocket Dogs"/><bias zone="J" name="Poke Inu - Poket Dogs"/></zoned>
 <zoned><bias zone="U" name="Pocky &amp; Rocky with Becky"/><bias zone="J" name="Kiki Kaikai Advance"/></zoned>
-<zoned type="deferred"><bias zone="U" name="Pokemon - Emerald Version"/><bias zone="J" name="Pokemon - Emerald"/><bias zone="S" name="Pokemon - Edicion Esmeralda"/><bias zone="G" name="Pokemon - Smaragd-Edition"/><bias zone="F" name="Pokemon - Version Emeraude"/><bias zone="I" name="Pokemon - Versione Smeraldo"/><clone name="Pokemon - Emerald Version"/><clone name="Pokemon - Emerald"/><clone name="Pokemon - Edicion Esmeralda"/><clone name="Pokemon - Smaragd-Edition"/><clone name="Pokemon - Version Emeraude"/><clone name="Pokemon - Versione Smeraldo"/><clone name="Emerald"/></zoned>
-<zoned type="deferred"><bias zone="U" name="Pokemon - Leaf Green Version &amp; Fire Red Version"/><bias zone="J" name="Pokemon - Leaf Green &amp; Fire Red"/><bias zone="S" name="Pokemon - Edicion Rojo Fuego &amp; Verda Hoja"/><bias zone="G" name="Pokemon - Blattgruene Edition &amp; Feuerrote Edition"/><bias zone="F" name="Pokemon - Version Vert Feuille &amp; Version Rouge Feu"/><bias zone="I" name="Pokemon - Versione Verde Foglia &amp; Versione Rosso Fuoco"/><group reg="^Pokemon Fire Red "/><clone name="Pokemon - Leaf Green Version"/><clone name="Pokemon - Fire Red Version"/><clone name="Pokemon - Leaf Green"/><clone name="Pokemon - Fire Red"/><clone name="Pokemon - Edicion Rojo Fuego"/><clone name="Pokemon - Verde Hoja"/><clone name="Pokemon - Blattgruene Edition"/><clone name="Pokemon - Feuerrote Edition"/><clone name="Pokemon - Version Rouge Feu"/><clone name="Pokemon - Version Vert Feuille"/><clone name="Pokemon - Versione Verde Foglia"/><clone name="Pokemon - Versione Rosso Fuoco"/><clone name="Fire Red"/><clone name="Leaf Green"/><clone name="Pokemon - Leaf Green Cake"/><clone name="Pokemon - Leaf Green Cake V2"/></zoned><zoned><bias zone="U" name="Pokemon Mystery Dungeon - Red Rescue Team"/><bias zone="J" name="Pokemon - Fushigi no Dungeon Aka no Kyuujotai"/></zoned>
-<zoned type="deferred"><bias zone="U" name="Pokemon - Ruby Version &amp; Sapphire Version"/><bias zone="J" name="Pokemon - Ruby &amp; Sapphire"/><bias zone="S" name="Pokemon - Edicion Rubi &amp; Edicion Zafiro"/><bias zone="G" name="Pokemon - Rubin-Edition &amp; Saphir-Edition"/><bias zone="F" name="Pokemon - Version Rubis &amp; Version Saphir"/><bias zone="I" name="Pokemon - Versione Rubino &amp; Versione Zaffiro"/><clone name="Pokemon - Ruby Version"/><clone name="Pokemon - Sapphire Version"/><clone name="Pokemon - Ruby"/><clone name="Pokemon - Sapphire"/><clone name="Pokemon - Edicion Rubi"/><clone name="Pokemon - Edicion Zafiro"/><clone name="Pokemon - Rubin-Edition"/><clone name="Pokemon - Saphir-Edition"/><clone name="Pokemon - Version Rubis"/><clone name="Pokemon - Version Saphir"/><clone name="Pokemon - Versione Rubino"/><clone name="Pokemon - Versione Zaffiro"/><clone name="Ruby"/><clone name="Sapphire"/><clone name="Pokemon Ruby"/><clone name="Pokemon Sapphire"/><group reg="^Pokemon - Sapphire (Intro|Trainer)"/></zoned>
+<zoned type="deferred">
+    <bias zone="U" name="Pokemon - Emerald Version"/>
+    <bias zone="J" name="Pokemon - Emerald"/>
+    <bias zone="S" name="Pokemon - Edicion Esmeralda"/>
+    <bias zone="G" name="Pokemon - Smaragd-Edition"/>
+    <bias zone="F" name="Pokemon - Version Emeraude"/>
+    <bias zone="I" name="Pokemon - Versione Smeraldo"/>
+    <group reg="^Pokemon.*(Emerald|Esmeralda|Smaragd|Emeraude)"/>
+    <group regf="Emerald Hack"/>
+    <clone name="Emerald"/>
+</zoned>
+<zoned type="deferred">
+    <bias zone="U" name="Pokemon - Leaf Green Version &amp; Fire Red Version"/>
+    <bias zone="J" name="Pokemon - Leaf Green &amp; Fire Red"/>
+    <bias zone="S" name="Pokemon - Edicion Rojo Fuego &amp; Verda Hoja"/>
+    <bias zone="G" name="Pokemon - Blattgruene Edition &amp; Feuerrote Edition"/>
+    <bias zone="F" name="Pokemon - Version Vert Feuille &amp; Version Rouge Feu"/>
+    <bias zone="I" name="Pokemon - Versione Verde Foglia &amp; Versione Rosso Fuoco"/>
+    <group reg="^Pokemon.*(Leaf Green|Fire Red|Rojo Fuego|Hoja|Blattgruene|Feuerrote|Rouge Feu|Vert Feuille|Verde Foglia|Rosso Fuoco)"/>
+    <group regf="Fire Red Hack"/>
+    <group regf="Leaf Green Hack"/>
+    <clone name="Fire Red"/>
+    <clone name="Leaf Green"/>
+</zoned>
+<zoned>
+    <bias zone="U" name="Pokemon Mystery Dungeon - Red Rescue Team"/>
+    <bias zone="J" name="Pokemon - Fushigi no Dungeon Aka no Kyuujotai"/>
+</zoned>
+<zoned type="deferred">
+    <bias zone="U" name="Pokemon - Ruby Version &amp; Sapphire Version"/>
+    <bias zone="J" name="Pokemon - Ruby &amp; Sapphire"/>
+    <bias zone="S" name="Pokemon - Edicion Rubi &amp; Edicion Zafiro"/>
+    <bias zone="G" name="Pokemon - Rubin-Edition &amp; Saphir-Edition"/>
+    <bias zone="F" name="Pokemon - Version Rubis &amp; Version Saphir"/>
+    <bias zone="I" name="Pokemon - Versione Rubino &amp; Versione Zaffiro"/>
+    <group reg="^Pokemon.*(Sapphire|Zafiro|Ruby|Rubi|Rubin|Rubis|Rubino|Saphir|Saphir|Zaffiro)"/>
+    <group regf="Ruby Hack"/>
+    <group regf="Sapphire Hack"/>
+    <clone name="Ruby"/>
+    <clone name="Sapphire"/>
+</zoned>
 <zoned><bias zone="E" name="Polarium"/><bias zone="J" name="Tsuukin Hitofude"/></zoned>
 <zoned><bias zone="U" name="Power Rangers - Time Force"/><bias zone="G" name="Power Rangers - Time Force"/><bias zone="F" name="Power Rangers - La Force du Temps"/></zoned><zoned><bias zone="U" name="Princess Natasha"/><bias zone="E" name="Princess Natasha - Student Secret Agent"/></zoned>
 <zoned><bias zone="U" name="WTA Tour Tennis"/><bias zone="E" name="Pro Tennis WTA Tour"/><bias zone="J" name="WTA Tour Tennis Pocket"/></zoned>
@@ -472,6 +541,7 @@
 <zoned><bias zone="E" name="Sheep"/><bias zone="J" name="Sheep - Hitsuji no Kimochi"/></zoned>
 <zoned type="deferred"><bias zone="U" name="Shifting Gears - Road Trip"/><bias zone="E" name="Gadget Racers"/><bias zone="J" name="Choro Q Advance 2"/><clone name="Shifting Gears - Road Trip"/><group reg="^Gadget Racers \(E\)"/><clone name="Choro Q Advance 2"/></zoned>
 <zoned><bias zone="En" name="Shining Force - Resurrection of the Dark Dragon"/><bias zone="J" name="Shining Force - Kuroki Ryuu no Fukkatsu"/></zoned>
+<zoned><bias zone="En" name="Shining Soul II"/><group reg="^Shining Soul II"/></zoned>
 <zoned><bias zone="U" name="Sims, The - Bustin' Out"/><bias zone="J" name="Sims, The"/><group reg="^Sims, The - Bustin' Out (Intro|Trainer)"/></zoned>
 <zoned><bias zone="U" name="Space Invaders"/><bias zone="J" name="Space Invaders EX"/></zoned>
 <zoned><bias zone="U" name="Spider-Man - The Movie"/><bias zone="F" name="Spider-Man - The Movie"/><bias zone="G" name="Spider-Man - Der Film"/></zoned>
@@ -482,7 +552,8 @@
 <zoned><bias zone="En" name="Spyro - Season of Ice"/><bias zone="J" name="Spyro Advance"/><group reg="^Spyro (Intro|Trainer)"/></zoned>
 <zoned><bias zone="E" name="Steel Empire"/><bias zone="J" name="Kootetsu Teikoku from Hot-B"/></zoned>
 <zoned><bias zone="E" name="Steven Gerrard's Total Soccer 2002"/><bias zone="J" name="Total Soccer Advance"/></zoned>
-<zoned><bias zone="En" name="Street Fighter Alpha 3"/><bias zone="J" name="Street Fighter Zero 3 Upper"/></zoned><zoned><bias zone="U" name="Summon Night - Swordcraft Story 2"/><bias zone="J" name="Summon Night - Craft Sword Monogatari 2"/></zoned>
+<zoned><bias zone="En" name="Street Fighter Alpha 3"/><bias zone="J" name="Street Fighter Zero 3 Upper"/><group reg="Street Fighter Zero 3"/></zoned>
+<zoned><bias zone="U" name="Summon Night - Swordcraft Story 2"/><bias zone="J" name="Summon Night - Craft Sword Monogatari 2"/></zoned>
 <zoned><bias zone="U" name="Super Army War"/><bias zone="E" name="Glory Days - Essence of a War"/></zoned>
 <zoned><bias zone="En" name="Super Bust-A-Move"/><bias zone="J" name="Super Puzzle Bobble Advance"/></zoned>
 <zoned><bias zone="U" name="Super Ghouls 'N Ghosts"/><bias zone="J" name="Choh Makaimura R"/><group reg="^Super Ghouls 'N Ghosts (Intro|Trainer)"/></zoned>
@@ -490,9 +561,10 @@
 <zoned><bias zone="En" name="Super Mario Advance 2 - Super Mario World"/><bias zone="J" name="Super Mario Advance 2"/><clone name="Chaoji Maliou Shijie"/><clone name="100-in-1"/></zoned>
 <zoned><bias zone="En" name="Super Mario Advance 3 - Yoshi's Island"/><bias zone="J" name="Yoshi's Island - Super Mario Advance 3"/><bias zone="Cn" name="Yaoxi Dao"/><group reg="^Super Mario Advance 3 - Yoshi's Island (Intro|Trainer)"/></zoned>
 <zoned><bias zone="En" name="Super Mario Advance 4 - Super Mario Bros. 3"/><bias zone="J" name="Super Mario Advance 4"/><group reg="^Super Mario Advance 4 (Intro|Trainer)"/></zoned>
-<zoned><bias zone="En" name="Super Street Fighter II Turbo - Revival"/><bias zone="J" name="Super Street Fighter II X - Revival"/></zoned>
+<zoned><bias zone="En" name="Super Street Fighter II Turbo - Revival"/><bias zone="J" name="Super Street Fighter II X - Revival"/><bias zone="J" name="Super Street Fighter II X - Surrender Earthworm Edition (Hack)"/></zoned>
 <zoned><bias zone="U" name="Sword of Mana"/><bias zone="J" name="Shinyaku Seiken Densetsu"/><group reg="^Sword of Mana (Intro|Trainer)"/></zoned>
 <zoned><bias zone="U" name="Tactics Ogre - The Knight of Lodis"/><bias zone="J" name="Tactics Ogre Gaiden - The Knight of Lodis"/></zoned>
+<zoned><bias zone="En" name="Tales of Phantasia"/><group reg="^Tales of Phantasia"/></zoned>
 <zoned><bias zone="U" name="Teenage Mutant Ninja Turtles - Volume 1"/><bias zone="F" name="Teenage Mutant Ninja Turtles - Le Demenagement - Volume 1"/></zoned><zoned><bias zone="U" name="Teenage Mutant Ninja Turtles Double Pack"/><bias zone="E" name="2-in-1 - Teenage Mutant Ninja Turtles Gamepack"/></zoned><zoned><bias zone="U" name="Tiny Toon Adventures - Scary Dreams"/><bias zone="E" name="Tiny Toon Adventures - Buster's Bad Dream"/></zoned>
 <zoned><bias zone="E" name="Tootuff - The Gagmachine"/><bias zone="F" name="Titeuf Ze Gagmachine"/></zoned>
 <zoned><bias zone="En" name="Top Gear GT Championship"/><bias zone="J" name="Top Gear All Japan GT Championship"/><clone name="GT Championship"/></zoned>
